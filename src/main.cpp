@@ -35,8 +35,10 @@ public:
         //Serial.println(duration);
 
         if (duration == 0)
-            return 999.0; 
-        return (duration * 0.034 / 2);
+            return 999.0;
+        float dis=duration * 0.034 / 2;
+
+        return (dis<=100?dis:100);
     }
 
     float getFilteredDistance() {
@@ -61,7 +63,7 @@ private:
     Servo servo;
     const int threshold = 20;
     int front, back;
-    const int motorspeed = 200;
+    const int motorspeed = 150;
 
 public:
     void test()
@@ -258,6 +260,7 @@ void handleMode()
             mode = false;
             server.send(200, "text/plain", "MANUAL");
             Serial.println("Mode=manual");
+            mycar.stop();
         }
         else if (server.arg("mode") == "auto")
         {
@@ -342,12 +345,12 @@ void serverTask(void *pvParameters) {
 
 
 
-void setup(){
+void setup() {
     WiFi.softAP("ADAS CAR", "rohanbatra");
     delay(500);
     Serial.begin(115200);
-    pinMode(indicator,OUTPUT);
-    Serial.println("Wifi Started at"+WiFi.softAPIP().toString());
+    pinMode(indicator, OUTPUT);
+    Serial.println("WiFi Started at " + WiFi.softAPIP().toString());
 
     Serial.println("Setting up server handlers");
     server.on("/mode", HTTP_POST, handleMode);
@@ -355,36 +358,29 @@ void setup(){
     server.on("/", HTTP_GET, handleroot);
     server.on("/ign", HTTP_POST, handleign);
     server.on("/test", HTTP_GET, handletest);
-    server.on("/status/mode", HTTP_GET,[](){handlestatus(2);});
-    server.on("/status/ign",HTTP_GET,[](){handlestatus(1);});
-    
+    server.on("/status/mode", HTTP_GET, []() { handlestatus(2); });
+    server.on("/status/ign", HTTP_GET, []() { handlestatus(1); });
+
     Serial.println("All Handlers Initialized");
+
+    // Start the server
+    server.begin();
+    Serial.println("Server started");
+
     Serial.println("Entering test mode");
     mycar.setup();
     mycar.test();
-    Serial.println("Test Complete");
-
-    
-    xTaskCreatePinnedToCore(
-        serverTask,    
-        "ServerTask",  
-        4096,          
-        NULL,          
-        1,             
-        NULL,          
-        0              
-    );
+    Serial.println("\nTest Complete");
 }
-
 unsigned long lastADASUpdate = 0;
 const int ADAS_INTERVAL = 200; 
-
 void loop() {
+    server.handleClient();  // Ensure the server processes incoming requests
 
     if (ign) {
         digitalWrite(indicator, HIGH);
         
-       
+        // Run ADAS logic at intervals
         if (mode && millis() - lastADASUpdate >= ADAS_INTERVAL) {
             lastADASUpdate = millis();
             mycar.adasDrive();
@@ -395,3 +391,22 @@ void loop() {
         mycar.stop();
     }
 }
+
+
+
+// void loop() {
+//     server.handleClient();
+//     if (ign) {
+//         digitalWrite(indicator, HIGH);
+        
+       
+//         if (mode && millis() - lastADASUpdate >= ADAS_INTERVAL) {
+//             lastADASUpdate = millis();
+//             mycar.adasDrive();
+//         }
+//     } 
+//     else {
+//         digitalWrite(indicator, LOW);
+//         mycar.stop();
+//     }
+// }
