@@ -152,8 +152,6 @@ public:
 
     void adasDrive()
     {
-        servo.write(90);
-        delay(100);
         front_distance = scanner.getDistance();
         Serial.printf("Front Distance: %f\n", front_distance);
         if (front_distance > threshold)
@@ -336,14 +334,6 @@ void handlestatus(int what)
     }
     server.send(200, "text/plain", status);
 }
-void serverTask(void *pvParameters) {
-    while (true) {
-        server.handleClient();
-        vTaskDelay(1);  
-    }
-}
-
-
 
 void setup() {
     WiFi.softAP("ADAS CAR", "rohanbatra");
@@ -372,19 +362,17 @@ void setup() {
     mycar.test();
     Serial.println("\nTest Complete");
 }
-unsigned long lastADASUpdate = 0;
-const int ADAS_INTERVAL = 200; 
+
 void loop() {
-    server.handleClient();  // Ensure the server processes incoming requests
+    server.handleClient();
 
     if (ign) {
         digitalWrite(indicator, HIGH);
         
-        // Run ADAS logic at intervals
-        if (mode && millis() - lastADASUpdate >= ADAS_INTERVAL) {
-            lastADASUpdate = millis();
+        if(mode){
             mycar.adasDrive();
         }
+        
     } 
     else {
         digitalWrite(indicator, LOW);
