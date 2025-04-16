@@ -464,9 +464,9 @@ private:
     L298N left, right;
     HCSR04 scanner;
     Servo servo;
-    const int threshold = 20;
+    const int threshold = 30;
     int front, back;
-    const int motorspeed = 150; // 0 - 255
+    const int motorspeed = 200; // 0 - 255
 
 public:
     void test()
@@ -482,6 +482,8 @@ public:
             digitalWrite(front, LOW);
         }
         servo.write(180);
+        delay(50);
+        servo.write(90);
     }
 
     CAR(int ena, int in1, int in2, int enb, int in3, int in4, int trig, int echo, int servoPin, int front_led, int back_led)
@@ -555,7 +557,7 @@ public:
         stop();
     }
 
-    void adasDrive()
+    void adasDrive_org()
     {
         front_distance = scanner.getDistance();
         Serial.printf("Front Distance: %f\n", front_distance);
@@ -597,6 +599,57 @@ public:
         servo.write(90);
         delay(100);
     }
+    void adasDrive()
+{
+    front_distance = scanner.getDistance();
+    Serial.printf("Front Distance: %.2f cm\n", front_distance);
+
+    if (front_distance > threshold)
+    {
+        forward(motorspeed);
+    }
+    else
+    {
+        stop();
+        delay(100);
+        Serial.println("Obstacle ahead! Scanning...");
+
+        // Look left
+        servo.write(30); // slightly left instead of full 0
+        delay(300); // allow servo to settle
+        left_distance = scanner.getDistance();
+        Serial.printf("Left Distance: %.2f cm\n", left_distance);
+
+        // Look right
+        servo.write(150); // slightly right instead of full 180
+        delay(300);
+        right_distance = scanner.getDistance();
+        Serial.printf("Right Distance: %.2f cm\n", right_distance);
+
+        // Reset servo to front
+        servo.write(90);
+        delay(200);
+
+        if (left_distance > threshold && left_distance > right_distance)
+        {
+            Serial.println("Turning left");
+            turnLeft(motorspeed);
+            delay(300);
+        }
+        else if (right_distance > threshold)
+        {
+            Serial.println("Turning right");
+            turnRight(motorspeed);
+            delay(300);
+        }
+        else
+        {
+            Serial.println("Spinning to find open path...");
+            spinAround(motorspeed);
+            delay(400); // spin a bit longer to clear area
+        }
+    }
+}
 
     void command(String command, int speed)
     {
