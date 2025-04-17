@@ -99,7 +99,7 @@ public:
         servo.write(90);
         pinMode(front, OUTPUT);
         pinMode(back, OUTPUT);
-        pinMode(this->irsensor, INPUT);
+        pinMode(this->irsensor, INPUT_PULLDOWN);
     }
 
     void forward(int speed)
@@ -210,7 +210,7 @@ public:
 
             // Reverse to back away
             backward(motorspeed);
-            delay(400);
+            delay(700);
             stop();
             delay(100);
 
@@ -227,7 +227,7 @@ public:
                 turnRight(motorspeed);
             }
 
-            delay(400);
+            delay(1000);
             stop();
             delay(100);
 
@@ -279,20 +279,20 @@ public:
             {
                 Serial.println("Turning left");
                 turnLeft(motorspeed);
-                delay(300);
+                delay(900);
             }
             else if (right_distance > threshold)
             {
                 Serial.println("Turning right");
                 turnRight(motorspeed);
-                delay(300);
+                delay(900);
             }
             else
             {
                 Serial.println("Spinning to find open path...");
                 // spinAround(motorspeed);
                 backward(motorspeed);
-                delay(400); // spin a bit longer to clear area
+                delay(1000); // spin a bit longer to clear area
                 stop();
                 delay(100);
 
@@ -309,7 +309,7 @@ public:
                     turnRight(motorspeed);
                 }
 
-                delay(400);
+                delay(1000);
                 stop();
                 delay(100);
             }
@@ -378,7 +378,7 @@ public:
     if (streaming)
     {
         float front = scanner.getDistance();
-        bool irState = digitalRead(irsensor);
+        bool irState = (digitalRead(irsensor)==HIGH);
 
         Serial.println("=== Sensor Readings ===");
         Serial.printf("Ultrasonic Front Distance: %.2f cm\n", front);
@@ -404,7 +404,7 @@ public:
 #define indicator 2    // built in led
 #define front_led 21   // Front LED
 #define back_led 15    // back led
-#define irSensorPin 34 // IR sensor OUT connected to GPIO34 (input only, safe)
+#define irSensorPin 19 // IR sensor OUT connected to GPIO34 (input only, safe)
 
 CAR mycar(ena, in1, in2, enb, in3, in4, trig, echo, servoPin, front_led, back_led, irSensorPin);
 
