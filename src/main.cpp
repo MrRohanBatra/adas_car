@@ -354,6 +354,40 @@ public:
             Serial.println("Stopping car");
         }
     }
+    void handleSerialCommands()
+{
+    static bool streaming = false;
+
+    if (Serial.available())
+    {
+        String cmd = Serial.readStringUntil('\n');
+        cmd.trim();
+
+        if (cmd.equalsIgnoreCase("gsv"))
+        {
+            Serial.println("Started streaming sensor data...");
+            streaming = true;
+        }
+        else if (cmd.equalsIgnoreCase("stop"))
+        {
+            Serial.println("Stopped streaming.");
+            streaming = false;
+        }
+    }
+
+    if (streaming)
+    {
+        float front = scanner.getDistance();
+        bool irState = digitalRead(irsensor);
+
+        Serial.println("=== Sensor Readings ===");
+        Serial.printf("Ultrasonic Front Distance: %.2f cm\n", front);
+        Serial.printf("IR Sensor: %s\n", irState ? "Obstacle Detected" : "Clear");
+        Serial.println("========================");
+        delay(500); // Reduce spam
+    }
+}
+
 };
 
 #define ena 25 // Motor A EN (PWM Capable)
@@ -385,8 +419,11 @@ void handleMode(AsyncWebServerRequest *req)
         {
             mode = false;
             req->send(200, "text/plain", "MANUAL");
-            Serial.println("Mode=manual");
-            mycar.stop();
+            Serial.println("Mode = manual");
+            for(int i=0;i<3;i++){
+                mycar.stop();
+                delay(100);
+            }
         }
         else if (req->arg("mode") == "auto")
         {
@@ -513,4 +550,5 @@ void loop()
         digitalWrite(indicator, LOW);
         mycar.stop();
     }
+    mycar.handleSerialCommands();
 }
