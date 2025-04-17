@@ -645,7 +645,8 @@ public:
         else
         {
             Serial.println("Spinning to find open path...");
-            spinAround(motorspeed);
+            // spinAround(motorspeed);
+            backward(motorspeed);
             delay(400); // spin a bit longer to clear area
         }
     }
@@ -660,11 +661,13 @@ public:
         }
         else if (command == "L")
         {
-            turnLeft(speed);
+            //turnLeft(speed);
+            turnRight(speed);
         }
         else if (command == "R")
         {
-            turnRight(speed);
+            //turnRight(speed);
+            turnLeft(speed);
         }
         else if (command == "Rev")
         {
@@ -837,6 +840,7 @@ void loop()
         if (mode)
         {
             mycar.adasDrive();
+            delay(200);
         }
     }
     else
