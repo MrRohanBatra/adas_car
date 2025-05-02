@@ -7,6 +7,25 @@
 float left_distance;
 float front_distance;
 float right_distance;
+class IrSensor {
+    private:
+      int sensor[2];
+  
+    public:
+    IrSensor(){}
+      // Constructor to initialize the IR sensor pins
+      void attach(int pin1, int pin2) {
+        sensor[0] = pin1;
+        sensor[1] = pin2;
+        pinMode(sensor[0], INPUT_PULLUP);
+        pinMode(sensor[1], INPUT_PULLUP);
+      }
+  
+      // Returns true if any one of the IR sensors reads HIGH
+      bool isObstacleDetected() {
+        return digitalRead(sensor[0]) == HIGH || digitalRead(sensor[1]) == HIGH;
+      }
+  };
 class HCSR04
 {
 private:
@@ -65,7 +84,7 @@ private:
     const int threshold = 30;
     int front, back;
     int motorspeed = 200; // 0 - 255
-    int irsensor;
+    IrSensor irsensor;
 
 public:
     void test()
@@ -85,20 +104,20 @@ public:
         servo.write(90);
     }
 
-    CAR(int ena, int in1, int in2, int enb, int in3, int in4, int trig, int echo, int servoPin, int front_led, int back_led, int irsensor1)
+    CAR(int ena, int in1, int in2, int enb, int in3, int in4, int trig, int echo, int servoPin, int front_led, int back_led, int irsensor1,int irsensor2)
         : left(ena, in1, in2), right(enb, in3, in4), scanner(trig, echo)
     {
         front = front_led;
         back = back_led;
         servo.attach(servoPin);
-        this->irsensor = irsensor1;
+        this->irsensor = irsensor;
+        irsensor.attach(irsensor1,irsensor2);
     }
     void setup()
     {
         servo.write(90);
         pinMode(front, OUTPUT);
         pinMode(back, OUTPUT);
-        pinMode(irsensor,INPUT);
     }
 
     void forward(int speed)
@@ -202,7 +221,7 @@ public:
     }
     void adasDrive_gynamic()
     {
-        if (digitalRead(irsensor)== HIGH ) // IR detects close object
+        if (irsensor.isObstacleDetected()==HIGH) // IR detects close object
         {
             stop();
             Serial.println("IR: Dead zone obstacle detected!");
@@ -231,7 +250,7 @@ public:
             delay(100);
 
             // Check again — if clear, move forward
-            if (digitalRead(irsensor)== HIGH  == LOW)
+            if (irsensor.isObstacleDetected() == LOW)
             {
                 Serial.println("IR clear after random turn. Moving forward.");
                 forward(motorspeed);
@@ -321,7 +340,7 @@ public:
     void adasDrive()
 {
     // Check IR dead zone
-    if (digitalRead(irsensor)== HIGH  == HIGH)
+    if (irsensor.isObstacleDetected() == HIGH)
     {
         stop();
         Serial.println("IR: Dead zone obstacle detected!");
@@ -353,7 +372,7 @@ public:
         delay(100);
 
         // Re-check IR
-        if (digitalRead(irsensor)== HIGH == LOW)
+        if (irsensor.isObstacleDetected()== LOW)
         {
             Serial.println("IR clear after turn. Moving forward.");
             forward(motorspeed);
@@ -524,7 +543,7 @@ public:
     if (streaming)
     {
         float front = scanner.getDistance();
-        bool irState = (digitalRead(irsensor)== HIGH );
+        bool irState = (irsensor.isObstacleDetected());
 
         Serial.println("=== Sensor Readings ===");
         Serial.printf("Ultrasonic Front Distance: %.2f cm\n", front);
@@ -554,7 +573,7 @@ public:
 #define irSensorPin 19 // IR sensor OUT connected to GPIO34 (input only, safe)
 #define irSensorPin2 35 //IR sensor OUT connected to GPIO34 (input only, safe)
 
-CAR mycar(ena, in1, in2, enb, in3, in4, trig, echo, servoPin, front_led, back_led, irSensorPin);
+CAR mycar(ena, in1, in2, enb, in3, in4, trig, echo, servoPin, front_led, back_led, irSensorPin,irSensorPin2);
 
 bool mode = true; // by default adas mode
 bool ign = false; // by default off
