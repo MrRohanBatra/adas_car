@@ -48,7 +48,7 @@ public:
             delay(10);
         }
         std::sort(readings, readings + 3);
-        return readings[1];
+        return (readings[1] - 5);
     }
     float getDistance()
     {
@@ -68,6 +68,10 @@ private:
     int irsensor;
 
 public:
+    void setSpeed(int speed)
+    {
+        this->motorspeed = speed;
+    }
     void test()
     {
         servo.write(0);
@@ -98,7 +102,7 @@ public:
         servo.write(90);
         pinMode(front, OUTPUT);
         pinMode(back, OUTPUT);
-        pinMode(irsensor,INPUT);
+        pinMode(irsensor, INPUT);
     }
 
     void forward(int speed)
@@ -202,7 +206,7 @@ public:
     }
     void adasDrive_gynamic()
     {
-        if (digitalRead(irsensor)== HIGH ) // IR detects close object
+        if (digitalRead(irsensor) == LOW) // IR detects close object
         {
             stop();
             Serial.println("IR: Dead zone obstacle detected!");
@@ -231,7 +235,7 @@ public:
             delay(100);
 
             // Check again — if clear, move forward
-            if (digitalRead(irsensor)== HIGH  == LOW)
+            if (digitalRead(irsensor) == LOW == LOW)
             {
                 Serial.println("IR clear after random turn. Moving forward.");
                 forward(motorspeed);
@@ -246,11 +250,10 @@ public:
         }
 
         front_distance = scanner.getDistance();
-        int temp=constrain(int(front_distance),10,200);
-        motorspeed=map(temp,10,200,100,255);
+        int temp = constrain(int(front_distance), 10, 200);
+        motorspeed = map(temp, 10, 200, 100, 255);
         // Serial.printf("Front Distance: %.2f cm\n", front_distance);
         Serial.printf("Front Distance: %.2f cm | Speed: %d\n", front_distance, motorspeed);
-
 
         if (front_distance > threshold)
         {
@@ -319,134 +322,137 @@ public:
         }
     }
     void adasDrive()
-{
-    // Check IR dead zone
-    if (digitalRead(irsensor)== HIGH  == HIGH)
     {
-        stop();
-        Serial.println("IR: Dead zone obstacle detected!");
-
-        // === Reverse dynamically ===
-        int reverseSpeed = 180; // default
-        int reverseTime = 600;  // ms
-
-        Serial.printf("Backing up at %d speed for %d ms\n", reverseSpeed, reverseTime);
-        backward(reverseSpeed);
-        delay(reverseTime);
-        stop();
-        delay(100);
-
-        // === Random escape turn ===
-        int turnDir = random(0, 2); // 0 = left, 1 = right
-        Serial.printf("IR escape: Turning %s\n", turnDir == 0 ? "LEFT" : "RIGHT");
-
-        int turnSpeed = 220;
-        int turnTime = 800;
-
-        if (turnDir == 0)
-            turnLeft(turnSpeed);
-        else
-            turnRight(turnSpeed);
-
-        delay(turnTime);
-        stop();
-        delay(100);
-
-        // Re-check IR
-        if (digitalRead(irsensor)== HIGH == LOW)
+        // Check IR dead zone
+        if (digitalRead(irsensor) == LOW)
         {
-            Serial.println("IR clear after turn. Moving forward.");
-            forward(motorspeed);
-        }
-        else
-        {
-            Serial.println("Still blocked. Holding.");
             stop();
-        }
+            Serial.println("IR: Dead zone obstacle detected!");
 
-        return;
-    }
+            // === Reverse dynamically ===
+            int reverseSpeed = 180; // default
+            int reverseTime = 600;  // ms
 
-    // === Front distance based driving ===
-    front_distance = scanner.getDistance();
-    int temp = constrain(int(front_distance), 10, 200);
-    motorspeed = map(temp, 10, 200, 100, 255);
-
-    Serial.printf("Front Distance: %.2f cm | Speed: %d\n", front_distance, motorspeed);
-
-    if (front_distance > threshold)
-    {
-        forward(motorspeed);
-    }
-    else
-    {
-        stop();
-        delay(100);
-        Serial.println("Obstacle ahead! Scanning...");
-
-        // Scan sides
-        servo.write(30);
-        delay(300);
-        left_distance = scanner.getDistance();
-
-        servo.write(150);
-        delay(300);
-        right_distance = scanner.getDistance();
-
-        servo.write(90);
-        delay(200);
-
-        Serial.printf("Left: %.2f cm | Right: %.2f cm\n", left_distance, right_distance);
-
-        // Decide turn
-        if (left_distance > threshold && left_distance > right_distance)
-        {
-            int turnDur = map(left_distance, threshold, 200, 500, 1000);
-            Serial.printf("Turning LEFT for %d ms\n", turnDur);
-            backward(175);
-            delay(150);
-            turnLeft(255);
-            delay(turnDur);
-        }
-        else if (right_distance > threshold)
-        {
-            int turnDur = map(right_distance, threshold, 200, 500, 1000);
-            Serial.printf("Turning RIGHT for %d ms\n", turnDur);
-            backward(175);
-            delay(150);
-            turnRight(255);
-            delay(turnDur);
-        }
-        else
-        {
-            Serial.println("No clear side. Reversing and random escape...");
-
-            int reverseTime = 1000;
-            int reverseSpeed = 200;
+            Serial.printf("Backing up at %d speed for %d ms\n", reverseSpeed, reverseTime);
             backward(reverseSpeed);
             delay(reverseTime);
             stop();
             delay(100);
 
-            int turnDir = random(0, 2);
-            int turnTime = 1000;
+            // === Random escape turn ===
+            int turnDir = random(0, 2); // 0 = left, 1 = right
+            Serial.printf("IR escape: Turning %s\n", turnDir == 0 ? "LEFT" : "RIGHT");
 
-            Serial.printf("Random escape: Turning %s for %d ms\n", turnDir == 0 ? "LEFT" : "RIGHT", turnTime);
-            if (turnDir == 0){
-            backward(175);
-            delay(150);
-                turnLeft(255);}
-            else{
-            backward(175);
-            delay(150);
-                turnRight(255);
-            }
+            int turnSpeed = 220;
+            int turnTime = 800;
+
+            if (turnDir == 0)
+                turnLeft(turnSpeed);
+            else
+                turnRight(turnSpeed);
+
             delay(turnTime);
             stop();
             delay(100);
+
+            // Re-check IR
+            if (digitalRead(irsensor) == LOW)
+            {
+                Serial.println("IR clear after turn. Moving forward.");
+                forward(motorspeed);
+            }
+            else
+            {
+                Serial.println("Still blocked. Holding.");
+                stop();
+            }
+
+            return;
+        }
+
+        // === Front distance based driving ===
+        front_distance = scanner.getDistance();
+        int temp = constrain(int(front_distance), 10, 200);
+        motorspeed = map(temp, 10, 200, 100, 255);
+
+        Serial.printf("Front Distance: %.2f cm | Speed: %d\n", front_distance, motorspeed);
+
+        if (front_distance > threshold)
+        {
+            forward(motorspeed);
+        }
+        else
+        {
+            stop();
+            delay(100);
+            Serial.println("Obstacle ahead! Scanning...");
+
+            // Scan sides
+            servo.write(30);
+            delay(300);
+            left_distance = scanner.getDistance();
+
+            servo.write(150);
+            delay(300);
+            right_distance = scanner.getDistance();
+
+            servo.write(90);
+            delay(200);
+
+            Serial.printf("Left: %.2f cm | Right: %.2f cm\n", left_distance, right_distance);
+
+            // Decide turn
+            if (left_distance > threshold && left_distance > right_distance)
+            {
+                int turnDur = map(left_distance, threshold, 200, 500, 1000);
+                Serial.printf("Turning LEFT for %d ms\n", turnDur);
+                backward(175);
+                delay(150);
+                turnLeft(255);
+                delay(turnDur);
+            }
+            else if (right_distance > threshold)
+            {
+                int turnDur = map(right_distance, threshold, 200, 500, 1000);
+                Serial.printf("Turning RIGHT for %d ms\n", turnDur);
+                backward(175);
+                delay(150);
+                turnRight(255);
+                delay(turnDur);
+            }
+            else
+            {
+                Serial.println("No clear side. Reversing and random escape...");
+
+                int reverseTime = 1000;
+                int reverseSpeed = 200;
+                backward(reverseSpeed);
+                delay(reverseTime);
+                stop();
+                delay(100);
+
+                int turnDir = random(0, 2);
+                int turnTime = 1000;
+
+                Serial.printf("Random escape: Turning %s for %d ms\n", turnDir == 0 ? "LEFT" : "RIGHT", turnTime);
+                if (turnDir == 0)
+                {
+                    backward(175);
+                    delay(150);
+                    turnLeft(255);
+                }
+                else
+                {
+                    backward(175);
+                    delay(150);
+                    turnRight(255);
+                }
+                delay(turnTime);
+                stop();
+                delay(100);
+            }
         }
     }
-}
 
     void command(String command, int speed)
     {
@@ -487,54 +493,56 @@ public:
         }
     }
     void handleSerialCommands()
-{
-    static bool streaming = false;
-
-    if (Serial.available())
     {
-        String cmd = Serial.readStringUntil('\n');
-        cmd.trim();
+        static bool streaming = false;
 
-        if (cmd.equalsIgnoreCase("gsv"))
+        if (Serial.available())
         {
-            Serial.println("Started streaming sensor data...");
-            streaming = true;
-        }
-        else if(cmd.equalsIgnoreCase("servo")){
-            servo.write(0);
-            for(int k=0;k<=2;k++){
-                for(int i=0;i<=180;i+=10){
-                    servo.write(i);
-                    delay(50);
+            String cmd = Serial.readStringUntil('\n');
+            cmd.trim();
+
+            if (cmd.equalsIgnoreCase("gsv"))
+            {
+                Serial.println("Started streaming sensor data...");
+                streaming = true;
+            }
+            else if (cmd.equalsIgnoreCase("servo"))
+            {
+                servo.write(0);
+                for (int k = 0; k <= 2; k++)
+                {
+                    for (int i = 0; i <= 180; i += 10)
+                    {
+                        servo.write(i);
+                        delay(50);
+                    }
+                    for (int i = 180; i >= 0; i -= 10)
+                    {
+                        servo.write(i);
+                        delay(50);
+                    }
+                    servo.write(90);
                 }
-                for(int i=180;i>=0;i-=10){
-                    servo.write(i);
-                    delay(50);
-                }
-                servo.write(90);
-                
+            }
+            else if (cmd.equalsIgnoreCase("stop"))
+            {
+                Serial.println("Stopped streaming.");
+                streaming = false;
             }
         }
-        else if (cmd.equalsIgnoreCase("stop"))
+        if (streaming)
         {
-            Serial.println("Stopped streaming.");
-            streaming = false;
+            float front = scanner.getDistance();
+            bool irState = (digitalRead(irsensor) == LOW);
+
+            Serial.println("=== Sensor Readings ===");
+            Serial.printf("Ultrasonic Front Distance: %.2f cm\n", front);
+            Serial.printf("IR Sensor: %s\n", irState ? "Obstacle Detected" : "Clear");
+            Serial.printf("Servo: %d\n", servo.read());
+            Serial.println("========================");
+            delay(500); // Reduce spam
         }
     }
-    if (streaming)
-    {
-        float front = scanner.getDistance();
-        bool irState = (digitalRead(irsensor)== HIGH );
-
-        Serial.println("=== Sensor Readings ===");
-        Serial.printf("Ultrasonic Front Distance: %.2f cm\n", front);
-        Serial.printf("IR Sensor: %s\n", irState ? "Obstacle Detected" : "Clear");
-        Serial.printf("Servo: %d\n",servo.read());
-        Serial.println("========================");
-        delay(500); // Reduce spam
-    }
-}
-
 };
 
 #define ena 25 // Motor A EN (PWM Capable)
@@ -547,12 +555,12 @@ public:
 #define trig 5  // Ultrasonic Sensor Trigger
 #define echo 18 // Ultrasonic Sensor Echo (No Serial Conflict)
 
-#define servoPin 23    // Servo Motor (PWM Capable)
-#define indicator 2    // built in led
-#define front_led 21   // Front LED
-#define back_led 15    // back led
-#define irSensorPin 19 // IR sensor OUT connected to GPIO34 (input only, safe)
-#define irSensorPin2 35 //IR sensor OUT connected to GPIO34 (input only, safe)
+#define servoPin 23     // Servo Motor (PWM Capable)
+#define indicator 2     // built in led
+#define front_led 21    // Front LED
+#define back_led 15     // back led
+#define irSensorPin 19  // IR sensor OUT connected to GPIO34 (input only, safe)
+#define irSensorPin2 35 // IR sensor OUT connected to GPIO34 (input only, safe)
 
 CAR mycar(ena, in1, in2, enb, in3, in4, trig, echo, servoPin, front_led, back_led, irSensorPin);
 
@@ -568,10 +576,13 @@ void handleMode(AsyncWebServerRequest *req)
             mode = false;
             req->send(200, "text/plain", "MANUAL");
             Serial.println("Mode = manual");
-            for(int i=0;i<3;i++){
+            for (int i = 0; i < 3; i++)
+            {
                 mycar.stop();
                 delay(100);
             }
+            mycar.stop();
+            mycar.setSpeed(255);
         }
         else if (req->arg("mode") == "auto")
         {
