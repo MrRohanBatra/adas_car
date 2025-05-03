@@ -560,8 +560,6 @@ public:
 #define front_led 21    // Front LED
 #define back_led 15     // back led
 #define irSensorPin 19  // IR sensor OUT connected to GPIO34 (input only, safe)
-#define irSensorPin2 35 // IR sensor OUT connected to GPIO34 (input only, safe)
-
 CAR mycar(ena, in1, in2, enb, in3, in4, trig, echo, servoPin, front_led, back_led, irSensorPin);
 
 bool mode = true; // by default adas mode
