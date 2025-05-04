@@ -240,7 +240,7 @@ public:
 
         front_distance = scanner.getDistance();
         int temp = constrain(int(front_distance), 10, 200);
-        motorspeed = map(temp, 10, 200, 100, 255);
+        motorspeed = map(temp, 10, 95, 100, 200);
         
         Serial.printf("Front Distance: %.2f cm | Speed: %d\n", front_distance, motorspeed);
 
@@ -669,7 +669,7 @@ void setup()
 
     Serial.println("All Handlers Initialized");
 
-    
+    mycar.servotest();
     server.begin();
     Serial.println("Server started");
 
