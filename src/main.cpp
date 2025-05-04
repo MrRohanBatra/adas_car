@@ -64,7 +64,7 @@ private:
     Servo servo;
     const int threshold = 30;
     int front, back;
-    int motorspeed = 200; 
+    int motorspeed = 180; 
     int irsensor;
 
 public:
@@ -666,8 +666,6 @@ void setup()
     server.on("/", HTTP_GET, handleroot);
     server.on("/ign", HTTP_POST, handleign);
     server.on("/test", HTTP_GET, handletest);
-    server.on("/status/mode", HTTP_GET, handlestatus_mode);
-    server.on("/status/ign", HTTP_GET, handlestatus_ign);
 
     Serial.println("All Handlers Initialized");
 
