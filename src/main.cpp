@@ -74,19 +74,8 @@ public:
     }
     void test()
     {
-        servo.write(0);
-        Serial.printf("Testing HCSR04 distance: %f", scanner.getDistance());
-        for (int i = 0; i < 4; i++)
-        {
-            digitalWrite(back, HIGH);
-            digitalWrite(front, HIGH);
-            delay(300);
-            digitalWrite(back, LOW);
-            digitalWrite(front, LOW);
-        }
-        servo.write(180);
-        delay(50);
-        servo.write(90);
+        servotest();
+        delay(100);
     }
 
     CAR(int ena, int in1, int in2, int enb, int in3, int in4, int trig, int echo, int servoPin, int front_led, int back_led, int irsensor1)
@@ -453,7 +442,23 @@ public:
             }
         }
     }
-
+    void servotest(){
+        servo.write(0);
+                for (int k = 0; k <= 2; k++)
+                {
+                    for (int i = 0; i <= 180; i += 10)
+                    {
+                        servo.write(i);
+                        delay(50);
+                    }
+                    for (int i = 180; i >= 0; i -= 10)
+                    {
+                        servo.write(i);
+                        delay(50);
+                    }
+                    servo.write(90);
+                }
+    }
     void command(String command, int speed)
     {
 
@@ -508,21 +513,7 @@ public:
             }
             else if (cmd.equalsIgnoreCase("servo"))
             {
-                servo.write(0);
-                for (int k = 0; k <= 2; k++)
-                {
-                    for (int i = 0; i <= 180; i += 10)
-                    {
-                        servo.write(i);
-                        delay(50);
-                    }
-                    for (int i = 180; i >= 0; i -= 10)
-                    {
-                        servo.write(i);
-                        delay(50);
-                    }
-                    servo.write(90);
-                }
+                servotest();
             }
             else if (cmd.equalsIgnoreCase("stop"))
             {
@@ -603,7 +594,7 @@ void handleCommand(AsyncWebServerRequest *req)
             if (req->hasArg("cmd"))
             {
                 String command = req->arg("cmd");
-                mycar.command(command, 200);
+                mycar.command(command, 255);
                 req->send(200, "text/plain", "Command executed");
             }
             else
