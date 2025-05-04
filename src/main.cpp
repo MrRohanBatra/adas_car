@@ -35,8 +35,8 @@ public:
         if (duration == 0)
             return 999.0;
         float dis = duration * 0.034 / 2;
-
-        return (dis <= 100 ? dis : 100);
+        dis-=5;
+        return (dis <= 200 ? dis : 200);
     }
 
     float getFilteredDistance()
@@ -48,7 +48,7 @@ public:
             delay(10);
         }
         std::sort(readings, readings + 3);
-        return (readings[1] - 5);
+        return (readings[1]);
     }
     float getDistance()
     {
