@@ -594,7 +594,7 @@ void handleCommand(AsyncWebServerRequest *req)
             if (req->hasArg("cmd"))
             {
                 String command = req->arg("cmd");
-                mycar.command(command, 255);
+                mycar.command(command, 200);
                 req->send(200, "text/plain", "Command executed");
             }
             else
