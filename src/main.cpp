@@ -675,10 +675,6 @@ void setup()
     server.begin();
     Serial.println("Server started");
 
-    Serial.println("Entering test mode");
-    mycar.setup();
-    mycar.test();
-    Serial.println("\nTest Complete");
 }
 
 void loop()
