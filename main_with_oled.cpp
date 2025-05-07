@@ -4,11 +4,13 @@
 #include <L298N.h>
 #include <ESP32Servo.h>
 #include <stdlib.h>
-#include<Adafruit_SSD1306.h>
-#include<Adafruit_GFX.h>
-#include<Wire.h>
-float front_distance, left_distance, right_distance;
-Adafruit_SSD1306 display(128,64,&Wire,-1);
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+Adafruit_SSD1306 display(128, 64, &Wire, -1);
+
+
 void showAlert(String mess) {
     display.clearDisplay();
 
@@ -30,64 +32,61 @@ void showAlert(String mess) {
     display.println(message);
     display.display();
 }
-void showProgressBar(const String &heading, int currentProgress)
-{
-    static int lastProgress = -1;
-    static String lastHeading = "";
 
-    currentProgress = constrain(currentProgress, 0, 100);
 
-    if (currentProgress == lastProgress && heading == lastHeading)
-        return;
-
-    lastProgress = currentProgress;
-    lastHeading = heading;
-
-    display.clearDisplay();
-
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(10, 10);
-    display.println(heading);
-
-    display.drawRect(10, 30, 108, 16, SSD1306_WHITE);
-
-    int fillWidth = map(currentProgress, 0, 100, 0, 108);
-    display.fillRect(11, 31, fillWidth, 14, SSD1306_WHITE);
-    display.setCursor(45, 50);  // Position the percentage text
-    display.setTextSize(1);      // Set text size
-    display.print(currentProgress);  // Print the percentage value
-    display.print("%");         // Append the percentage symbol
-
-    display.display();
-}
-
-void showAlert(String mainMessage, String subHeading) {
+float front_distance, left_distance, right_distance;
+void showSensorStatus_org(const String& heading, int distanceCM, bool irBlocked) {
     display.clearDisplay();
   
-    display.setTextColor(SSD1306_WHITE);
-  
-    // Main message (large and centered vertically a bit higher)
+    // Heading centered
     display.setTextSize(2);
-    int16_t x1, y1;
-    uint16_t w, h;
-    display.getTextBounds(mainMessage, 0, 0, &x1, &y1, &w, &h);
-    int xMain = (display.width() - w) / 2;
-    int yMain = (display.height() - h) / 2 - 8;  // Shift upward to make space for subheading
-    display.setCursor(xMain, yMain);
-    display.println(mainMessage);
+    display.setTextColor(SSD1306_WHITE);
+    int16_t x = (display.width() - heading.length() * 12) / 2;  // 12 pixels per char in size 2
+    display.setCursor(x, 0);
+    display.print(heading);
   
-    // Subheading (smaller, just below main message)
+    // Distance
     display.setTextSize(1);
-    display.getTextBounds(subHeading, 0, 0, &x1, &y1, &w, &h);
-    int xSub = (display.width() - w) / 2;
-    int ySub = yMain + 20;  // Leave vertical gap
-    display.setCursor(xSub, ySub);
-    display.println(subHeading);
+    display.setCursor(0, 20);
+    display.print("Distance: ");
+    display.print(distanceCM);
+    display.println(" cm");
+  
+    // IR Sensor
+    display.setCursor(0, 30);
+    display.print("IR: ");
+    display.println(irBlocked ? "Blocked" : "Clear");
   
     display.display();
   }
-class HCSR04
+  void showSensorStatus(const String& heading, int distanceCM, bool irBlocked) {
+    display.clearDisplay();
+  
+    // Heading centered at top
+    display.setTextSize(2);
+    display.setTextColor(SSD1306_WHITE);
+    int16_t headingX = (display.width() - heading.length() * 12) / 2;  // Approx 12 pixels per char at size 2
+    display.setCursor(headingX, 1);
+    display.print(heading);
+  
+    display.setTextSize(2);  // Keep large size for central text
+    String centerText;
+  
+    if (irBlocked) {
+      centerText = "IR Blocked";
+    } else {
+      centerText = String(distanceCM) + " cm";
+    }
+  
+    // Center the centerText on the display, below the heading
+    int16_t textX = (display.width() - centerText.length() * 12) / 2;
+    int16_t textY = 26; // Leave enough space below heading
+    display.setCursor(textX, textY);
+    display.print(centerText);
+  
+    display.display();
+  }
+  class HCSR04
 {
 private:
     int trigPin, echoPin;
@@ -434,6 +433,7 @@ public:
 
         front_distance = scanner.getDistance();
         int temp = constrain(int(front_distance), 10, 200);
+        showSensorStatus("ADAS MODE",temp,(digitalRead(irsensor)==LOW)?true:false);
         motorspeed = map(temp, 10, 200, 100, 200);
 
         Serial.printf("Front Distance: %.2f cm | Speed: %d\n", front_distance, motorspeed);
@@ -448,23 +448,23 @@ public:
             delay(100);
             Serial.println("Obstacle ahead! Scanning...");
 
-            servo.write(30);
+            servo.write(31);
             delay(300);
             left_distance = scanner.getDistance();
-
-            servo.write(150);
+            showSensorStatus("ADAS MODE",int(left_distance),(digitalRead(irsensor)==LOW)?true:false);
+            servo.write(151);
             delay(300);
             right_distance = scanner.getDistance();
-
-            servo.write(90);
+            showSensorStatus("ADAS MODE",int(right_distance),(digitalRead(irsensor)==LOW)?true:false);
+            servo.write(91);
             delay(200);
-
             Serial.printf("Left: %.2f cm | Right: %.2f cm\n", left_distance, right_distance);
 
             if (left_distance > threshold && left_distance > right_distance)
             {
                 int turnDur = map(left_distance, threshold, 200, 500, 1000);
                 Serial.printf("Turning LEFT for %d ms\n", turnDur);
+                showAlert("LEFT TURN");
                 backward(175);
                 delay(150);
                 turnLeft(255);
@@ -474,6 +474,7 @@ public:
             {
                 int turnDur = map(right_distance, threshold, 200, 500, 1000);
                 Serial.printf("Turning RIGHT for %d ms\n", turnDur);
+                showAlert("RIGHT TURN");
                 backward(175);
                 delay(150);
                 turnRight(255);
@@ -482,7 +483,7 @@ public:
             else
             {
                 Serial.println("No clear side. Reversing and random escape...");
-
+                showAlert("REVERSE");
                 int reverseTime = 1000;
                 int reverseSpeed = 200;
                 backward(reverseSpeed);
@@ -496,12 +497,14 @@ public:
                 Serial.printf("Random escape: Turning %s for %d ms\n", turnDir == 0 ? "LEFT" : "RIGHT", turnTime);
                 if (turnDir == 0)
                 {
+                    showAlert("LEFT TURN");
                     backward(175);
                     delay(150);
                     turnLeft(255);
                 }
                 else
                 {
+                    showAlert("RIGHT TURN");
                     backward(175);
                     delay(150);
                     turnRight(255);
@@ -512,21 +515,31 @@ public:
             }
         }
     }
+    
     void servotest()
     {
+        int count = 0;
+        const int totalSteps = 2 * (180 / 10 + 1) * 2; 
         servo.write(0);
+    
         for (int k = 0; k <= 2; k++)
         {
             for (int i = 0; i <= 180; i += 10)
             {
                 servo.write(i);
+                showProgressBar("Testing Servo", (count * 100) / totalSteps);
+                count++;
                 delay(50);
             }
+    
             for (int i = 180; i >= 0; i -= 10)
             {
                 servo.write(i);
+                showProgressBar("Testing Servo", (count * 100) / totalSteps);
+                count++;
                 delay(50);
             }
+    
             servo.write(90);
         }
     }
@@ -636,7 +649,6 @@ void handleMode(AsyncWebServerRequest *req)
             mode = false;
             req->send(200, "text/plain", "MANUAL");
             Serial.println("Mode = manual");
-            showAlert("MANUAL");
             for (int i = 0; i < 3; i++)
             {
                 mycar.stop();
@@ -649,7 +661,6 @@ void handleMode(AsyncWebServerRequest *req)
         {
             mode = true;
             req->send(200, "text/plain", "AUTO");
-            showAlert("ADAS MODE");
         }
     }
     else
@@ -723,42 +734,77 @@ void handlestatus_mode(AsyncWebServerRequest *req)
     status = "Mode: " + String(mode ? "AUTO" : "MANUAL");
     req->send(200, "text/plain", status);
 }
-
+void scanI2CDevices() {
+    Serial.println("Scanning for I2C devices...");
+  
+    byte count = 0;
+    for (byte address = 1; address < 127; address++) {
+      Wire.beginTransmission(address);
+      if (Wire.endTransmission() == 0) {
+        Serial.print("Found device at 0x");
+        Serial.println(address, HEX);
+        count++;
+        delay(10);
+      }
+    }
+  
+    if (count == 0) {
+      Serial.println("No I2C devices found.");
+    } else {
+      Serial.print("Total devices found: ");
+      Serial.println(count);
+    }
+  }
 void setup()
 {
     Serial.begin(115200);
     Wire.begin(13,14);
-    if(!display.begin(SSD1306_SWITCHCAPVCC,0x3C)){
+    scanI2CDevices();
+    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+    {
         Serial.println("OLED failed");
         while (true)
             ;
     }
-    showAlert("ADAS CAR","Rohan Batra"); //bootlogo
-    delay(5000);
-    WiFi.softAP("ADAS CAR", "rohanbatra");
-    showProgressBar("WIFI SETUP",10);
+    showAlert("ADAS CAR");
     delay(2000);
+    display.clearDisplay();
+    showProgressBar("Booting ADAS System", 0);
+    for (int i = 1; i <= 100; i++)
+    {
+        showProgressBar("Booting ADAS System", i);
+        delay(100);
+    }
+    showProgressBar("Initializing Wifi",0);
+    WiFi.softAP("ADAS CAR", "rohanbatra");
+    delay(500);
+    for(int i=1;i<=100;i++){
+        showProgressBar("Initializing Wifi",i);
+        delay(60);
+    }
+    
+    showProgressBar("Starting Webserver",0);
     pinMode(indicator, OUTPUT);
     Serial.println("WiFi Started at " + WiFi.softAPIP().toString());
-    showProgressBar("WIFI SETUP",20);
-    delay(1000);
     Serial.println("Setting up server handlers");
-    showProgressBar("SERVER SETUP",30);
-    delay(1000);
     server.on("/mode", HTTP_POST, handleMode);
+
+    showProgressBar("Starting Webserver",20);
     server.on("/command", HTTP_POST, handleCommand);
+
+    showProgressBar("Starting Webserver",50);
     server.on("/", HTTP_GET, handleroot);
+
+    showProgressBar("Starting Webserver",80);
     server.on("/ign", HTTP_POST, handleign);
-    showProgressBar("SERVER SETUP",70);
-    delay(1000);
+
     Serial.println("All Handlers Initialized");
+    delay(1000);
+    showProgressBar("Starting Webserver",100);
     mycar.servotest();
     server.begin();
     Serial.println("Server started");
-    showProgressBar("SETUP DONE",100);
-    delay(2000);
 }
-int count=0;
 void loop()
 {
 
@@ -768,12 +814,12 @@ void loop()
 
         if (mode)
         {
-            if(count==0){
-                showAlert("ADAS MODE");
-                count++;
-            }
+            //showAlert("ADAS MODE");
             mycar.adasDrive();
-            delay(100);
+            delay(200);
+        }
+        else{
+            showAlert("MANUAL");
         }
     }
     else
