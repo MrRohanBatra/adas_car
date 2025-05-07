@@ -723,7 +723,12 @@ void handlestatus_mode(AsyncWebServerRequest *req)
     status = "Mode: " + String(mode ? "AUTO" : "MANUAL");
     req->send(200, "text/plain", status);
 }
-
+void smoothProgressBar(const String& label, int from, int to, int delayPerStep = 50) {
+    for (int i = from; i <= to; i++) {
+        showProgressBar(label, i); // your existing function
+        delay(delayPerStep);       // small delay for smoothness
+    }
+}
 void setup()
 {
     Serial.begin(115200);
@@ -733,30 +738,30 @@ void setup()
         while (true)
             ;
     }
-    showAlert("ADAS CAR","Rohan Batra"); //bootlogo
+    showAlert("ADAS CAR"," By Rohan Batra"); //bootlogo
     delay(5000);
     WiFi.softAP("ADAS CAR", "rohanbatra");
-    showProgressBar("WIFI SETUP",10);
-    delay(2000);
+    smoothProgressBar("WIFI SETUP",0,10);
+    delay(200);
     pinMode(indicator, OUTPUT);
     Serial.println("WiFi Started at " + WiFi.softAPIP().toString());
-    showProgressBar("WIFI SETUP",20);
-    delay(1000);
+    smoothProgressBar("WIFI SETUP",10,20);
+    delay(100);
     Serial.println("Setting up server handlers");
-    showProgressBar("SERVER SETUP",30);
-    delay(1000);
+    smoothProgressBar("SERVER SETUP",20,40);
+    delay(100);
     server.on("/mode", HTTP_POST, handleMode);
     server.on("/command", HTTP_POST, handleCommand);
     server.on("/", HTTP_GET, handleroot);
     server.on("/ign", HTTP_POST, handleign);
-    showProgressBar("SERVER SETUP",70);
-    delay(1000);
+    smoothProgressBar("SERVER SETUP",40,70);
+    delay(100);
     Serial.println("All Handlers Initialized");
     mycar.servotest();
     server.begin();
     Serial.println("Server started");
-    showProgressBar("SETUP DONE",100);
-    delay(2000);
+    smoothProgressBar("SETUP DONE",70,100);
+    delay(200);
 }
 int count=0;
 void loop()
