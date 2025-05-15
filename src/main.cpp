@@ -7,9 +7,10 @@
 #include<Adafruit_SSD1306.h>
 #include<Adafruit_GFX.h>
 #include<Wire.h>
+float battery=0.0;
 float front_distance, left_distance, right_distance;
 Adafruit_SSD1306 display(128,64,&Wire,-1);
-void showAlert(String mess) {
+void showAlert_org(String mess) {
     display.clearDisplay();
 
     
@@ -29,8 +30,44 @@ void showAlert(String mess) {
     display.setCursor(x, y);
     display.println(message);
     display.display();
+}  // Your global battery voltage variable
+
+void showAlert(String mess) {
+    display.clearDisplay();
+
+    // Display main message centered
+    display.setTextSize(2); 
+    display.setTextColor(SSD1306_WHITE);
+
+    String message = mess;
+    int16_t x1, y1;
+    uint16_t w, h;
+
+    display.getTextBounds(message, 0, 0, &x1, &y1, &w, &h);
+    int x = (display.width() - w) / 2;
+    int y = (display.height() - h) / 2;
+
+    display.setCursor(x, y);
+    display.println(message);
+
+    // Prepare battery voltage string with sign
+    display.setTextSize(1); // smaller text for battery
+    String batteryStr = (battery >= 0 ? "+" : "-") + String(abs(battery), 1) + " V";
+
+    // Position battery voltage at top right corner with padding
+    int16_t bx1, by1;
+    uint16_t bw, bh;
+    display.getTextBounds(batteryStr, 0, 0, &bx1, &by1, &bw, &bh);
+
+    int bx = display.width() - bw - 2;  // 2 px padding from right edge
+    int by = 2;                         // 2 px padding from top edge
+
+    display.setCursor(bx, by);
+    display.println(batteryStr);
+
+    display.display();
 }
-void showProgressBar(const String &heading, int currentProgress)
+void showProgressBar_org(const String &heading, int currentProgress)
 {
     static int lastProgress = -1;
     static String lastHeading = "";
@@ -62,7 +99,51 @@ void showProgressBar(const String &heading, int currentProgress)
     display.display();
 }
 
-void showAlert(String mainMessage, String subHeading) {
+void showProgressBar(const String &heading, int currentProgress)
+{
+    static int lastProgress = -1;
+    static String lastHeading = "";
+
+    currentProgress = constrain(currentProgress, 0, 100);
+
+    if (currentProgress == lastProgress && heading == lastHeading)
+        return;
+
+    lastProgress = currentProgress;
+    lastHeading = heading;
+
+    display.clearDisplay();
+
+    // Heading
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(10, 10);
+    display.println(heading);
+
+    // Battery at top right
+    String batteryStr = (battery >= 0 ? "+" : "-") + String(abs(battery), 1) + " V";
+    int16_t bx1, by1;
+    uint16_t bw, bh;
+    display.getTextBounds(batteryStr, 0, 0, &bx1, &by1, &bw, &bh);
+    int bx = display.width() - bw - 2;
+    int by = 2;
+    display.setCursor(bx, by);
+    display.println(batteryStr);
+
+    // Progress bar
+    display.drawRect(10, 30, 108, 16, SSD1306_WHITE);
+    int fillWidth = map(currentProgress, 0, 100, 0, 108);
+    display.fillRect(11, 31, fillWidth, 14, SSD1306_WHITE);
+
+    // Progress percentage
+    display.setCursor(45, 50);
+    display.setTextSize(1);
+    display.print(currentProgress);
+    display.print("%");
+
+    display.display();
+}
+void showAlert_org(String mainMessage, String subHeading) {
     display.clearDisplay();
   
     display.setTextColor(SSD1306_WHITE);
@@ -87,7 +168,43 @@ void showAlert(String mainMessage, String subHeading) {
   
     display.display();
   }
-class HCSR04
+  void showAlert(String mainMessage, String subHeading) {
+    display.clearDisplay();
+
+    display.setTextColor(SSD1306_WHITE);
+
+    // Battery at top right
+    String batteryStr = (battery >= 0 ? "+" : "-") + String(abs(battery), 2) + "V";
+    int16_t bx1, by1;
+    uint16_t bw, bh;
+    display.setTextSize(1);  // Small text size for battery
+    display.getTextBounds(batteryStr, 0, 0, &bx1, &by1, &bw, &bh);
+    int bx = display.width() - bw - 2;
+    int by = 2;
+    display.setCursor(bx, by);
+    display.println(batteryStr);
+
+    // Main message (large, centered slightly higher)
+    display.setTextSize(2);
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds(mainMessage, 0, 0, &x1, &y1, &w, &h);
+    int xMain = (display.width() - w) / 2;
+    int yMain = (display.height() - h) / 2 - 8;
+    display.setCursor(xMain, yMain);
+    display.println(mainMessage);
+
+    // Subheading (small, below the main message)
+    display.setTextSize(1);
+    display.getTextBounds(subHeading, 0, 0, &x1, &y1, &w, &h);
+    int xSub = (display.width() - w) / 2;
+    int ySub = yMain + 20;
+    display.setCursor(xSub, ySub);
+    display.println(subHeading);
+
+    display.display();
+}
+  class HCSR04
 {
 private:
     int trigPin, echoPin;
@@ -620,6 +737,7 @@ const int indicator = 2;
 const int front_led = 21;
 const int back_led = 15;
 const int irSensorPin = 19;
+const int vin=36;
 
 CAR mycar(ena, in1, in2, enb, in3, in4, trig, echo, servoPin, front_led, back_led, irSensorPin);
 
@@ -729,6 +847,21 @@ void smoothProgressBar(const String& label, int from, int to, int delayPerStep =
         delay(delayPerStep);       // small delay for smoothness
     }
 }
+float getBatteryVoltage() {
+    float R1=330000,R2=110000;
+    const int sampleCount = 100;
+    long sum = 0;
+  
+    for (int i = 0; i < sampleCount; i++) {
+      sum += analogRead(vin);
+      delay(3); // small delay to reduce noise
+    }
+  
+    float avgRaw = sum / float(sampleCount);
+    float voltageOnPin = (avgRaw * 3.3) / 4095.0;
+    float inputVoltage = voltageOnPin * ((R1 + R2) / R2);
+    return inputVoltage;
+  }
 void setup()
 {
     Serial.begin(115200);
@@ -741,6 +874,7 @@ void setup()
     showAlert("ADAS CAR"," By Rohan Batra"); //bootlogo
     delay(5000);
     WiFi.softAP("ADAS CAR", "rohanbatra");
+    battery=getBatteryVoltage();
     smoothProgressBar("WIFI SETUP",0,10);
     delay(200);
     pinMode(indicator, OUTPUT);
@@ -778,7 +912,7 @@ void loop()
                 count++;
             }
             mycar.adasDrive();
-            delay(100);
+            battery=getBatteryVoltage();
         }
     }
     else
@@ -788,4 +922,5 @@ void loop()
         showAlert("IGN OFF");
     }
     mycar.handleSerialCommands();
+    battery=getBatteryVoltage();
 }
