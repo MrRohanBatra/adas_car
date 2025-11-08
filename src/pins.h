@@ -1,0 +1,14 @@
+const int ena = 25;
+const int in1 = 26;
+const int in2 = 27;
+const int enb = 32;
+const int in3 = 33;
+const int in4 = 4;
+const int trig = 5;
+const int echo = 18;
+const int servoPin = 23;
+const int indicator = 2;
+const int front_led = 21;
+const int back_led = 15;
+const int irSensorPin = 19;
+const int vin=36;
