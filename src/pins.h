@@ -12,3 +12,4 @@ const int front_led = 21;
 const int back_led = 15;
 const int irSensorPin = 19;
 const int vin=36;
+const int curSensorPin = 39;
