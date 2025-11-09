@@ -819,6 +819,9 @@ void setup()
     server.on("/command", HTTP_POST, handleCommand);
     server.on("/", HTTP_GET, handleroot);
     server.on("/ign", HTTP_POST, handleign);
+    server.on("/status_mode", HTTP_GET, handlestatus_mode);
+    server.on("/status_ign", HTTP_GET, handlestatus_ign);
+
     Serial.println("All Handlers Initialized");
     server.begin();
     Serial.println("Server started");
