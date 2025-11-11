@@ -948,7 +948,7 @@ void loop()
             // showAlert("ADAS");
             mycar.adasDrive();
             showDistances(left_distance, front_distance, right_distance);
-            battery = getBatteryVoltage();
+            // battery = getBatteryVoltage();
         }
         else
         {
