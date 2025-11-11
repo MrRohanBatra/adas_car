@@ -11,6 +11,7 @@
 #include "pins.h"
 #include <ACS712.h>
 
+
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 ACS712 cur(curSensorPin, 3.3, 4095, 66);
 float front_distance, left_distance, right_distance;
@@ -153,6 +154,7 @@ private:
     int ena, in1, in2; // Right side
     int enb, in3, in4; // Left side
     int chA, chB, speed;
+    String direction;
 
 public:
     MotorDriver(int ena, int in1, int in2, int enb, int in3, int in4, int speed, int chA = 3, int chB = 4)
@@ -166,6 +168,7 @@ public:
         this->chA = chA;
         this->chB = chB;
         this->speed = speed;
+        this->direction = "stop";
     }
 
     void begin()
@@ -197,6 +200,7 @@ public:
         digitalWrite(in4, HIGH);
         ledcWrite(chA, speed);
         ledcWrite(chB, speed);
+        this->direction = "forward";
     }
 
     void backward()
@@ -208,6 +212,7 @@ public:
         digitalWrite(in4, LOW);
         ledcWrite(chA, speed);
         ledcWrite(chB, speed);
+        this->direction = "backward";
     }
 
     void left()
@@ -219,6 +224,7 @@ public:
         digitalWrite(in4, LOW);
         ledcWrite(chA, speed);
         ledcWrite(chB, speed);
+        this->direction = "left";
     }
 
     void right()
@@ -230,10 +236,32 @@ public:
         digitalWrite(in4, HIGH);
         ledcWrite(chA, speed);
         ledcWrite(chB, speed);
+        this->direction = "right";
     }
 
     void stop()
     {
+        if (this->direction == "forward")
+        {
+            digitalWrite(in1, LOW);
+            digitalWrite(in2, HIGH);
+            digitalWrite(in3, HIGH);
+            digitalWrite(in4, LOW);
+            ledcWrite(chA, 150);
+            ledcWrite(chB, 150);
+            delay(100);
+        }
+        else if (this->direction == "backward")
+        {
+            digitalWrite(in1, HIGH);
+            digitalWrite(in2, LOW);
+            digitalWrite(in3, LOW);
+            digitalWrite(in4, HIGH);
+            ledcWrite(chA, 150);
+            ledcWrite(chB, 150);
+            delay(100);
+        }
+        this->direction = "stop";
         digitalWrite(in1, LOW);
         digitalWrite(in2, LOW);
         digitalWrite(in3, LOW);
@@ -297,14 +325,33 @@ public:
         float corrected = distance - calibration;
         return corrected <= 0 ? 0 : corrected;
     }
-    float getDistance(){
+    // float getDistance()
+    // {
+    //     int count = 5;
+    //     int sum = 0;
+    //     for (int i = 0; i < count; i++)
+    //     {
+    //         sum += this->getDistanceRaw();
+    //         delay(1);
+    //     }
+    //     return sum / count;
+    // }
+    float getDistance()
+    {
         int count = 5;
-        int sum = 0;
-        for (int i = 0; i < count;i++){
-            sum += this->getDistanceRaw();
-            delay(1);
+        float total = 0;
+        int valid = 0;
+        for (int i = 0; i < count; i++)
+        {
+            float d = this->getDistanceRaw();
+            if (d > 0)
+            {
+                total += d;
+                valid++;
+            }
+            delay(2);
         }
-        return sum / count;
+        return valid > 0 ? total / valid : -1;
     }
 };
 
@@ -314,7 +361,9 @@ private:
     MotorDriver motor;
     HCSR04 scanner;
     Servo servo;
-    const int threshold = 20;
+    int threshold;
+    const int baseThreshold = 40;
+    const int maxthreshold = 80;
     int front, back;
     int motorspeed = 200;
     int irsensor;
@@ -457,6 +506,8 @@ public:
         // front_distance = scanner.getDistance();
         // int temp = constrain(int(front_distance), 10, 200);
         // motorspeed = map(temp, 10, 200, 100, 200);
+        threshold = map(motorspeed, 0, 200, baseThreshold, maxthreshold);
+        threshold = constrain(threshold, baseThreshold, maxthreshold);
         front_distance = scanner.getDistance();
 
         int safeDistance = threshold + 20; // start accelerating after this
@@ -716,7 +767,7 @@ void handleCommand(AsyncWebServerRequest *req)
             if (req->hasArg("cmd"))
             {
                 String command = req->arg("cmd");
-                mycar.command(command, 255);
+                mycar.command(command, 200);
                 req->send(200, "text/plain", "Command executed");
             }
             else
@@ -792,6 +843,16 @@ float getBatteryVoltage()
     float voltageOnPin = (avgRawV * 3.3) / 4095.0;
     float inputVoltage = voltageOnPin * ((R1 + R2) / R2);
     float totalVol = inputVoltage + fabs(avgCurA) * 0.4;
+    if (totalVol<5)
+    {
+        showAlert("[ ! ]", "Low Battery");
+        while (true)
+        {
+        }
+
+        
+    }
+
     return totalVol;
 }
 void showBootScreen()
