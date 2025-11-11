@@ -261,7 +261,7 @@ class HCSR04
 private:
     int trigPin;
     int echoPin;
-    int calibration = 20;
+    int calibration = 0;
 
 public:
     HCSR04(int trig, int echo)
@@ -278,7 +278,7 @@ public:
         delay(50);
     }
 
-    float getDistance()
+    float getDistanceRaw()
     {
         // Send trigger pulse (10µs)
         digitalWrite(trigPin, LOW);
@@ -297,6 +297,15 @@ public:
         float corrected = distance - calibration;
         return corrected <= 0 ? 0 : corrected;
     }
+    float getDistance(){
+        int count = 5;
+        int sum = 0;
+        for (int i = 0; i < count;i++){
+            sum += this->getDistanceRaw();
+            delay(1);
+        }
+        return sum / count;
+    }
 };
 
 class CAR
@@ -305,7 +314,7 @@ private:
     MotorDriver motor;
     HCSR04 scanner;
     Servo servo;
-    const int threshold = 40;
+    const int threshold = 20;
     int front, back;
     int motorspeed = 200;
     int irsensor;
@@ -707,7 +716,7 @@ void handleCommand(AsyncWebServerRequest *req)
             if (req->hasArg("cmd"))
             {
                 String command = req->arg("cmd");
-                mycar.command(command, 200);
+                mycar.command(command, 255);
                 req->send(200, "text/plain", "Command executed");
             }
             else
